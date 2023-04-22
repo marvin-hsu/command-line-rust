@@ -27,7 +27,7 @@ pub fn run(config: Config) -> MyResult<()> {
                     } else if config.number_nonblank_lines {
                         if !line.is_empty() {
                             last_num += 1;
-                            println!("{:>6}\t{}", line_num + 1, line);
+                            println!("{:>6}\t{}", last_num + 1, line);
                         } else {
                             println!();
                         }
