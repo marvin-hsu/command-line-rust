@@ -17,7 +17,7 @@ type MyResult<T> = Result<T, Box<dyn Error>>;
 pub fn run(config: Config) -> MyResult<()> {
     for filename in config.files {
         match open(&filename) {
-            Err(err) => eprintln!("Fail to open {} : {}", filename, err),
+            Err(err) => eprint!("Fail to open {}: {}", filename, err),
             Ok(file) => {
                 let mut last_num = 0;
                 for (line_num, line) in file.lines().enumerate() {
