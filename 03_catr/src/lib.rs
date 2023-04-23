@@ -82,7 +82,7 @@ pub fn get_args() -> MyResult<Config> {
         files: matches
             .get_many::<String>("files")
             .unwrap()
-            .map(|s| s.clone())
+            .cloned()
             .collect(),
         number_lines: matches.get_flag("number"),
         number_nonblank_lines: matches.get_flag("number_nonblank"),
