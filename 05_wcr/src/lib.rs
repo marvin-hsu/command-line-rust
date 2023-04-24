@@ -59,7 +59,7 @@ pub fn get_args() -> MyResult<Config> {
     let mut bytes = matches.get_flag("bytes");
     let chars = matches.get_flag("chars");
 
-    if [lines, words, bytes, chars].iter().all(|v| *v == false) {
+    if [lines, words, bytes, chars].iter().all(|v| !(*v)) {
         lines = true;
         words = true;
         bytes = true;
