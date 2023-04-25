@@ -39,9 +39,10 @@ pub fn get_args() -> MyResult<Config> {
         .arg(
             Arg::new("bytes")
                 .long("bytes")
-                .short('b')
+                .short('c')
                 .help("Show byte count")
-                .action(ArgAction::SetTrue),
+                .action(ArgAction::SetTrue)
+                .conflicts_with("chars"),
         )
         .arg(
             Arg::new("chars")
@@ -147,9 +148,10 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
     let mut num_bytes = 0;
     let mut num_chars = 0;
 
-    let mut line = String::new();
+    
 
     loop {
+        let mut line = String::new();
         let line_bytes = file.read_line(&mut line)?;
 
         if line_bytes == 0 {
