@@ -98,7 +98,14 @@ fn parse_pos(range: &str) -> MyResult<PositionList> {
                 [n1, n2] => {
                     let n1: usize = parse_into_usize(n1)?;
                     let n2: usize = parse_into_usize(n2)?;
-                    Ok((n1 - 1)..n2)
+                    if n1 >= n2 {
+                        Err(format!(
+                            "First number in range ({}) must be lower than second number ({})",
+                            n1, n2
+                        ))
+                    } else {
+                        Ok((n1 - 1)..n2)
+                    }
                 }
                 _ => Err(format!("illegal list value: \"{}\"", val)),
             }
@@ -220,5 +227,22 @@ mod unit_tests {
 
         let res = parse_pos("1-1-a");
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_parse_pos_fail_input_bondary_error() {
+        let res = parse_pos("1-1");
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().to_string(),
+            "First number in range (1) must be lower than second number (1)"
+        );
+
+        let res = parse_pos("2-1");
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().to_string(),
+            "First number in range (2) must be lower than second number (1)"
+        );
     }
 }
