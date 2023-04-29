@@ -127,4 +127,16 @@ mod unit_tests {
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), vec![0..3]);
     }
+
+    #[test]
+    fn test_parse_pos_success_input_split_by_comma_and_dash() {
+        let res = parse_pos("1,7,3-5");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..1,6..7,2..5]);
+
+        let res = parse_pos("15,19-20");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![14..15,18..20]);
+    }
+
 }
