@@ -73,3 +73,19 @@ pub fn run(config: Config) -> MyResult<()> {
     println!("{:?}", config);
     Ok(())
 }
+
+fn parse_pos(range: &str) -> MyResult<PositionList> {
+    todo!();
+}
+
+#[cfg(test)]
+mod unit_tests {
+    use super::parse_pos;
+
+    #[test]
+    fn test_parse_pos_success_input_1() {
+        let res = parse_pos("1");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..1]);
+    }
+}
