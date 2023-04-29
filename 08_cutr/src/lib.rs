@@ -75,8 +75,13 @@ pub fn run(config: Config) -> MyResult<()> {
 }
 
 fn parse_pos(range: &str) -> MyResult<PositionList> {
-    let result = range.parse::<NonZeroUsize>()?;
-    Ok(vec![0..result.into()])
+    range
+        .split(',')
+        .map(|val| {
+            let r: usize = val.parse::<NonZeroUsize>().map_err(|_| val)?.into();
+            Ok(r-1..r)
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -88,5 +93,12 @@ mod unit_tests {
         let res = parse_pos("1");
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), vec![0..1]);
+    }
+
+    #[test]
+    fn test_parse_pos_success_input_1_comma_3() {
+        let res = parse_pos("1,3");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..1, 2..3]);
     }
 }
