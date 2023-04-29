@@ -154,7 +154,12 @@ mod unit_tests {
 
     #[test]
     fn test_parse_pos_fail_input_zero() {
-        assert!(parse_pos("").is_err());
-        assert!(parse_pos("0-1").is_err());
+        let res = parse_pos("0");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"0\"");
+
+        let res = parse_pos("0-1");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"0\"");
     }
 }
