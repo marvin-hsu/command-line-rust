@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command};
-use std::{error::Error, ops::Range};
+use std::{error::Error, num::NonZeroUsize, ops::Range};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 type PositionList = Vec<Range<usize>>;
@@ -75,7 +75,8 @@ pub fn run(config: Config) -> MyResult<()> {
 }
 
 fn parse_pos(range: &str) -> MyResult<PositionList> {
-    todo!();
+    let result = range.parse::<NonZeroUsize>()?;
+    Ok(vec![0..result.into()])
 }
 
 #[cfg(test)]
