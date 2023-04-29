@@ -36,36 +36,76 @@ pub fn get_args() -> MyResult<Config> {
                 .value_name("BYTES")
                 .short('b')
                 .long("bytes")
-                .help("Selected bytes"),
+                .help("Selected bytes")
+                .conflicts_with_all(&["chars", "fields"]),
         )
         .arg(
             Arg::new("chars")
                 .value_name("CHARS")
                 .short('c')
                 .long("chars")
-                .help("Selected characters"),
-        )
-        .arg(
-            Arg::new("Delim")
-                .value_name("DELIMITER")
-                .short('d')
-                .long("delim")
-                .default_value("")
-                .help("Field delimiter"),
+                .help("Selected characters")
+                .conflicts_with_all(&["fields", "bytes"]),
         )
         .arg(
             Arg::new("fields")
                 .value_name("FIELDS")
                 .short('f')
                 .long("fields")
-                .help("Selected fields"),
+                .help("Selected fields")
+                .conflicts_with_all(&["chars", "bytes"]),
+        )
+        .arg(
+            Arg::new("delimiter")
+                .value_name("DELIMITER")
+                .short('d')
+                .long("delim")
+                .default_value("")
+                .help("Field delimiter")
+                .default_value("\t"),
         )
         .get_matches();
 
+    let delimiter = matches.get_one::<String>("delimiter").unwrap();
+    let delim_bytes = delimiter.as_bytes();
+    if delim_bytes.len() != 1 {
+        return Err(From::from(format!(
+            "--delim \"{}\" nust be a single byte",
+            delimiter
+        )));
+    }
+
+    let fields = matches
+        .get_one::<String>("fields")
+        .map(|s| parse_pos(s))
+        .transpose()?;
+    let bytes = matches
+        .get_one::<String>("bytes")
+        .map(|s| parse_pos(s))
+        .transpose()?;
+    let chars = matches
+        .get_one::<String>("chars")
+        .map(|s| parse_pos(s))
+        .transpose()?;
+
+    let extract = if let Some(fields_pos) = fields {
+        Extract::Fields(fields_pos)
+    } else if let Some(bytes_pos) = bytes {
+        Extract::Bytes(bytes_pos)
+    } else if let Some(chars_pos) = chars {
+        Extract::Chars(chars_pos)
+    } else {
+        return Err(From::from("Must have --fields, --bytes, or --chars"));
+    };
+
     Ok(Config {
-        files: todo!(),
-        delimiter: todo!(),
-        extract: todo!(),
+        files: matches
+            .get_many::<String>("files")
+            .unwrap()
+            .cloned()
+            .collect(),
+        delimiter: *delim_bytes.first().unwrap(),
+        extract,
     })
 }
 
