@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command};
-use std::{error::Error, num::NonZeroUsize, ops::Range};
+use std::{error::Error, ops::Range};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 type PositionList = Vec<Range<usize>>;
@@ -77,11 +77,22 @@ pub fn run(config: Config) -> MyResult<()> {
 fn parse_pos(range: &str) -> MyResult<PositionList> {
     range
         .split(',')
-        .map(|val| {
-            let r: usize = val.parse::<NonZeroUsize>().map_err(|_| val)?.into();
-            Ok(r-1..r)
-        })
-        .collect()
+        .map(
+            |val| match val.split('-').collect::<Vec<&str>>().as_slice() {
+                [n] => {
+                    let n: usize = n.parse().unwrap();
+                    Ok((n - 1)..n)
+                }
+                [n1, n2] => {
+                    let n1: usize = n1.parse().unwrap();
+                    let n2: usize = n2.parse().unwrap();
+                    Ok((n1 - 1)..n2)
+                }
+                _ => Err(range.to_string()),
+            },
+        )
+        .collect::<Result<_, _>>()
+        .map_err(From::from)
 }
 
 #[cfg(test)]
@@ -96,9 +107,24 @@ mod unit_tests {
     }
 
     #[test]
-    fn test_parse_pos_success_input_1_comma_3() {
+    fn test_parse_pos_success_input_split_by_comma() {
         let res = parse_pos("1,3");
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), vec![0..1, 2..3]);
+
+        let res = parse_pos("001,003");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..1, 2..3]);
+    }
+
+    #[test]
+    fn test_parse_pos_success_input_split_by_dash() {
+        let res = parse_pos("1-3");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..3]);
+
+        let res = parse_pos("0001-03");
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), vec![0..3]);
     }
 }
