@@ -78,14 +78,18 @@ fn parse_pos(range: &str) -> MyResult<PositionList> {
     range
         .split(',')
         .map(|val| {
-            let parse_into_usize = |n: &str| -> Result<usize, String> {
-                let n: usize = n
-                    .parse::<NonZeroUsize>()
-                    .map_err(|_| format!("illegal list value: \"{}\"", n))?
-                    .into();
-                Ok(n)
-            };
+            let parse_into_usize = |input: &str| -> Result<usize, String> {
+                let value_error = format!("illegal list value: \"{}\"", val);
 
+                if input.starts_with('+') {
+                    Err(value_error)
+                } else {
+                    input
+                        .parse::<NonZeroUsize>()
+                        .map(usize::from)
+                        .map_err(|_| value_error)
+                }
+            };
             match val.split('-').collect::<Vec<&str>>().as_slice() {
                 [n] => {
                     let n = parse_into_usize(n)?;
@@ -160,6 +164,21 @@ mod unit_tests {
 
         let res = parse_pos("0-1");
         assert!(res.is_err());
-        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"0\"");
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"0-1\"");
+    }
+
+    #[test]
+    fn test_parse_pos_fail_input_plus() {
+        let res = parse_pos("+1");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"+1\"");
+
+        let res = parse_pos("+1-2");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"+1-2\"");
+
+        let res = parse_pos("1-+2");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"1-+2\"");
     }
 }
