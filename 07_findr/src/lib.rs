@@ -52,15 +52,36 @@ pub fn get_args() -> MyResult<Config> {
         )
         .get_matches();
 
-    let names = matches.get_many::<String>("name").map(|vals| {
-        vals.map(|name| Regex::new(name).map_err(|_| format!("Invalid --name \"{}\"", name)))
-            .collect::<Result<Vec<_>, _>>();
-    });
+    let names = matches
+        .get_many::<String>("name")
+        .map(|vals| {
+            vals.map(|val| Regex::new(val).map_err(|_| format!("Invalid --name \"{}\"", val)))
+                .collect()
+        })
+        .transpose()?
+        .unwrap_or_default();
+
+    let entry_types = matches
+        .get_many::<String>("type")
+        .map(|vals| {
+            vals.map(|val| match val.as_str() {
+                "d" => EntryType::Dir,
+                "f" => EntryType::File,
+                "l" => EntryType::Link,
+                _ => unreachable!("Invalid type!"),
+            })
+            .collect()
+        })
+        .unwrap_or_default();
 
     Ok(Config {
-        paths: Vec::new(),
-        names: Vec::new(),
-        entry_types: Vec::new(),
+        paths: matches
+            .get_many::<String>("path")
+            .unwrap()
+            .cloned()
+            .collect(),
+        names,
+        entry_types,
     })
 }
 
