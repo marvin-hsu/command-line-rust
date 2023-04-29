@@ -52,7 +52,7 @@ pub fn get_args() -> MyResult<Config> {
         )
         .get_matches();
 
-    let names = matches.get_many::<String>("names").map(|vals| {
+    let names = matches.get_many::<String>("name").map(|vals| {
         vals.map(|name| Regex::new(name).map_err(|_| format!("Invalid --name \"{}\"", name)))
             .collect::<Result<Vec<_>, _>>();
     });
