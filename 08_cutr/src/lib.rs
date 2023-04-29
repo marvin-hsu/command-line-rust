@@ -183,7 +183,7 @@ mod unit_tests {
     }
 
     #[test]
-    fn test_parse_pos_fail_input_not_number() {
+    fn test_parse_pos_fail_input_alphabet() {
         let res = parse_pos("a");
         assert!(res.is_err());
         assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"a\"");
@@ -199,5 +199,26 @@ mod unit_tests {
         let res = parse_pos("a-1");
         assert!(res.is_err());
         assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"a-1\"");
+    }
+
+    #[test]
+    fn test_parse_pos_fail_input_not_clear_range() {
+        let res = parse_pos("-");
+        assert!(res.is_err());
+
+        let res = parse_pos(",");
+        assert!(res.is_err());
+
+        let res = parse_pos("1,");
+        assert!(res.is_err());
+
+        let res = parse_pos("1-");
+        assert!(res.is_err());
+
+        let res = parse_pos("1-1-1");
+        assert!(res.is_err());
+
+        let res = parse_pos("1-1-a");
+        assert!(res.is_err());
     }
 }
