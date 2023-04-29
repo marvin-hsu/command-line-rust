@@ -90,8 +90,23 @@ pub fn run(config: Config) -> MyResult<()> {
     for path in config.paths {
         for entry in WalkDir::new(path) {
             match entry {
-                Ok(entry) => println!("{}", entry.path().display()),
                 Err(e) => eprint!("{}", e),
+                Ok(entry) => {
+                    if (config.entry_types.is_empty()
+                        || config.entry_types.iter().any(|t| match t {
+                            EntryType::Dir => entry.file_type().is_dir(),
+                            EntryType::File => entry.file_type().is_file(),
+                            EntryType::Link => entry.file_type().is_symlink(),
+                        }))
+                        && (config.names.is_empty()
+                            || config
+                                .names
+                                .iter()
+                                .any(|n| n.is_match(&entry.file_name().to_string_lossy())))
+                    {
+                        println!("{}", entry.path().display())
+                    }
+                }
             }
         }
     }
