@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command};
-use std::{error::Error, ops::Range};
+use std::{error::Error, num::NonZeroUsize, ops::Range};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 type PositionList = Vec<Range<usize>>;
@@ -77,20 +77,28 @@ pub fn run(config: Config) -> MyResult<()> {
 fn parse_pos(range: &str) -> MyResult<PositionList> {
     range
         .split(',')
-        .map(
-            |val| match val.split('-').collect::<Vec<&str>>().as_slice() {
+        .map(|val| {
+            let parse_into_usize = |n: &str| -> Result<usize, String> {
+                let n: usize = n
+                    .parse::<NonZeroUsize>()
+                    .map_err(|_| format!("illegal list value: \"{}\"", n))?
+                    .into();
+                Ok(n)
+            };
+
+            match val.split('-').collect::<Vec<&str>>().as_slice() {
                 [n] => {
-                    let n: usize = n.parse().unwrap();
+                    let n = parse_into_usize(n)?;
                     Ok((n - 1)..n)
                 }
                 [n1, n2] => {
-                    let n1: usize = n1.parse().unwrap();
-                    let n2: usize = n2.parse().unwrap();
+                    let n1: usize = parse_into_usize(n1)?;
+                    let n2: usize = parse_into_usize(n2)?;
                     Ok((n1 - 1)..n2)
                 }
-                _ => Err(range.to_string()),
-            },
-        )
+                _ => Err(format!("illegal list value: \"{}\"", val)),
+            }
+        })
         .collect::<Result<_, _>>()
         .map_err(From::from)
 }
@@ -132,11 +140,21 @@ mod unit_tests {
     fn test_parse_pos_success_input_split_by_comma_and_dash() {
         let res = parse_pos("1,7,3-5");
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), vec![0..1,6..7,2..5]);
+        assert_eq!(res.unwrap(), vec![0..1, 6..7, 2..5]);
 
         let res = parse_pos("15,19-20");
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), vec![14..15,18..20]);
+        assert_eq!(res.unwrap(), vec![14..15, 18..20]);
     }
 
+    #[test]
+    fn test_parse_pos_fail_input_empty() {
+        assert!(parse_pos("").is_err());
+    }
+
+    #[test]
+    fn test_parse_pos_fail_input_zero() {
+        assert!(parse_pos("").is_err());
+        assert!(parse_pos("0-1").is_err());
+    }
 }
