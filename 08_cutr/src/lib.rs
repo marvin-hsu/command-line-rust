@@ -79,7 +79,7 @@ fn parse_pos(range: &str) -> MyResult<PositionList> {
         .split(',')
         .map(|val| {
             let parse_into_usize = |input: &str| -> Result<usize, String> {
-                let value_error = format!("illegal list value: \"{}\"", val);
+                let value_error = format!("illegal list value: \"{}\"", range);
 
                 if input.starts_with('+') {
                     Err(value_error)
@@ -180,5 +180,24 @@ mod unit_tests {
         let res = parse_pos("1-+2");
         assert!(res.is_err());
         assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"1-+2\"");
+    }
+
+    #[test]
+    fn test_parse_pos_fail_input_not_number() {
+        let res = parse_pos("a");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"a\"");
+
+        let res = parse_pos("1,a");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"1,a\"");
+
+        let res = parse_pos("1-a");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"1-a\"");
+
+        let res = parse_pos("a-1");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err().to_string(), "illegal list value: \"a-1\"");
     }
 }
