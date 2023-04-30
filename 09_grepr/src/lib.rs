@@ -1,6 +1,11 @@
 use clap::{Arg, ArgAction, Command};
 use regex::{Regex, RegexBuilder};
-use std::{error::Error, fs, io::BufRead, mem};
+use std::{
+    error::Error,
+    fs::{self, File},
+    io::{self, BufRead, BufReader},
+    mem,
+};
 use walkdir::WalkDir;
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
@@ -83,16 +88,44 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    println!("pattern \"{}\"", config.pattern);
-
     let entries = find_files(&config.files, config.recursive);
+    let num_files = entries.len();
+    let print = |fname: &str, val: &str| {
+        if num_files > 1 {
+            print!("{}:{}", fname, val);
+        } else {
+            print!("{}", val);
+        }
+    };
+
     for entry in entries {
         match entry {
             Err(e) => eprintln!("{}", e),
-            Ok(filename) => println!("file \"{}\"", filename),
+            Ok(filename) => match open(&filename) {
+                Err(e) => eprintln!("{}: {}", filename, e),
+                Ok(file) => match find_lines(file, &config.pattern, config.invert_match) {
+                    Ok(matches) => {
+                        if config.count {
+                            print(&filename, &format!("{}\n", matches.len()));
+                        } else {
+                            for line in &matches {
+                                print(&filename, line);
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("{}", e),
+                },
+            },
         }
     }
     Ok(())
+}
+
+fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
 }
 
 fn find_files(paths: &[String], recursive: bool) -> Vec<MyResult<String>> {
