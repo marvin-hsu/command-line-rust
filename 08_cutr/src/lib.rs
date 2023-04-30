@@ -1,5 +1,12 @@
 use clap::{Arg, ArgAction, Command};
-use std::{error::Error, num::NonZeroUsize, ops::Range};
+use csv::StringRecord;
+use std::{
+    error::Error,
+    fs::File,
+    io::{self, BufRead, BufReader},
+    num::NonZeroUsize,
+    ops::Range,
+};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 type PositionList = Vec<Range<usize>>;
@@ -37,7 +44,7 @@ pub fn get_args() -> MyResult<Config> {
                 .short('b')
                 .long("bytes")
                 .help("Selected bytes")
-                .conflicts_with_all(&["chars", "fields"]),
+                .conflicts_with_all(["chars", "fields"]),
         )
         .arg(
             Arg::new("chars")
@@ -45,7 +52,7 @@ pub fn get_args() -> MyResult<Config> {
                 .short('c')
                 .long("chars")
                 .help("Selected characters")
-                .conflicts_with_all(&["fields", "bytes"]),
+                .conflicts_with_all(["fields", "bytes"]),
         )
         .arg(
             Arg::new("fields")
@@ -53,7 +60,7 @@ pub fn get_args() -> MyResult<Config> {
                 .short('f')
                 .long("fields")
                 .help("Selected fields")
-                .conflicts_with_all(&["chars", "bytes"]),
+                .conflicts_with_all(["chars", "bytes"]),
         )
         .arg(
             Arg::new("delimiter")
@@ -110,8 +117,20 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    println!("{:?}", config);
+    for filename in config.files {
+        match open(&filename) {
+            Ok(_) => println!("Opened {}", filename),
+            Err(e) => eprintln!("{}: {}", filename, e),
+        }
+    }
     Ok(())
+}
+
+fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
 }
 
 fn parse_pos(range: &str) -> MyResult<PositionList> {
@@ -154,9 +173,38 @@ fn parse_pos(range: &str) -> MyResult<PositionList> {
         .map_err(From::from)
 }
 
+fn extract_chars(line: &str, char_pos: &[Range<usize>]) -> String {
+    let chars = line.chars().collect::<Vec<_>>();
+    char_pos
+        .iter()
+        .cloned()
+        .flat_map(|range| range.filter_map(|i| chars.get(i)))
+        .collect()
+}
+
+fn extract_bytes(line: &str, byte_pos: &[Range<usize>]) -> String {
+    let bytes = line.as_bytes();
+    let selected: Vec<_> = byte_pos
+        .iter()
+        .cloned()
+        .flat_map(|range| range.filter_map(|i| bytes.get(i)).copied())
+        .collect();
+    String::from_utf8_lossy(&selected).into_owned()
+}
+
+fn extract_fields<'a>(record: &'a StringRecord, fileld_pos: &[Range<usize>]) -> Vec<&'a str> {
+    fileld_pos
+        .iter()
+        .cloned()
+        .flat_map(|range| range.filter_map(|i| record.get(i)))
+        .collect()
+}
+
 #[cfg(test)]
 mod unit_tests {
-    use super::parse_pos;
+    use csv::StringRecord;
+
+    use super::{extract_bytes, extract_chars, extract_fields, parse_pos};
 
     #[test]
     fn test_parse_pos_success_input_1() {
@@ -284,5 +332,35 @@ mod unit_tests {
             res.unwrap_err().to_string(),
             "First number in range (2) must be lower than second number (1)"
         );
+    }
+
+    #[test]
+    fn test_extract_chars() {
+        assert_eq!(extract_chars("", &[0..1]), "".to_string());
+        assert_eq!(extract_chars("ábc", &[0..1]), "á".to_string());
+        assert_eq!(extract_chars("ábc", &[0..1, 2..3]), "ác".to_string());
+        assert_eq!(extract_chars("ábc", &[0..3]), "ábc".to_string());
+        assert_eq!(extract_chars("ábc", &[2..3, 1..2]), "cb".to_string());
+        assert_eq!(extract_chars("ábc", &[0..1, 1..2, 4..5]), "áb".to_string());
+    }
+
+    #[test]
+    fn test_extract_bytes() {
+        assert_eq!(extract_bytes("ábc", &[0..1]), "�".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..2]), "á".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..3]), "áb".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..4]), "ábc".to_string());
+        assert_eq!(extract_bytes("ábc", &[3..4, 2..3]), "cb".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..2, 5..6]), "á".to_string());
+    }
+
+    #[test]
+    fn test_extract_fields() {
+        let rec = StringRecord::from(vec!["Captain", "Sham", "12345"]);
+        assert_eq!(extract_fields(&rec, &[0..1]), &["Captain"]);
+        assert_eq!(extract_fields(&rec, &[1..2]), &["Sham"]);
+        assert_eq!(extract_fields(&rec, &[0..1, 2..3]), &["Captain", "12345"]);
+        assert_eq!(extract_fields(&rec, &[0..1, 3..4]), &["Captain"]);
+        assert_eq!(extract_fields(&rec, &[1..2, 0..1]), &["Sham", "Captain"]);
     }
 }
