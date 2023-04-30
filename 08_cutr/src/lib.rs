@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command};
-use csv::StringRecord;
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use std::{
     error::Error,
     fs::File,
@@ -77,7 +77,7 @@ pub fn get_args() -> MyResult<Config> {
     let delim_bytes = delimiter.as_bytes();
     if delim_bytes.len() != 1 {
         return Err(From::from(format!(
-            "--delim \"{}\" nust be a single byte",
+            "--delim \"{}\" must be a single byte",
             delimiter
         )));
     }
@@ -119,7 +119,31 @@ pub fn get_args() -> MyResult<Config> {
 pub fn run(config: Config) -> MyResult<()> {
     for filename in config.files {
         match open(&filename) {
-            Ok(_) => println!("Opened {}", filename),
+            Ok(file) => match &config.extract {
+                Extract::Fields(field_pos) => {
+                    let mut reader = ReaderBuilder::new()
+                        .delimiter(config.delimiter)
+                        .has_headers(false)
+                        .from_reader(file);
+                    let mut wtr = WriterBuilder::new()
+                        .delimiter(config.delimiter)
+                        .from_writer(io::stdout());
+                    for record in reader.records() {
+                        let record = record?;
+                        wtr.write_record(extract_fields(&record, field_pos))?
+                    }
+                }
+                Extract::Bytes(byte_pos) => {
+                    for line in file.lines() {
+                        println!("{}", extract_bytes(&line?, byte_pos))
+                    }
+                }
+                Extract::Chars(char_pos) => {
+                    for line in file.lines() {
+                        println!("{}", extract_chars(&line?, char_pos))
+                    }
+                }
+            },
             Err(e) => eprintln!("{}: {}", filename, e),
         }
     }
@@ -192,8 +216,8 @@ fn extract_bytes(line: &str, byte_pos: &[Range<usize>]) -> String {
     String::from_utf8_lossy(&selected).into_owned()
 }
 
-fn extract_fields<'a>(record: &'a StringRecord, fileld_pos: &[Range<usize>]) -> Vec<&'a str> {
-    fileld_pos
+fn extract_fields<'a>(record: &'a StringRecord, field_pos: &[Range<usize>]) -> Vec<&'a str> {
+    field_pos
         .iter()
         .cloned()
         .flat_map(|range| range.filter_map(|i| record.get(i)))
