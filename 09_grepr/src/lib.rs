@@ -1,10 +1,17 @@
 use clap::{Arg, ArgAction, Command};
+use regex::{Regex, RegexBuilder};
 use std::error::Error;
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
-pub struct Config {}
+pub struct Config {
+    pattern: Regex,
+    files: Vec<String>,
+    recursive: bool,
+    count: bool,
+    invert_match: bool,
+}
 
 pub fn get_args() -> MyResult<Config> {
     let matches = Command::new("grepr")
@@ -18,7 +25,7 @@ pub fn get_args() -> MyResult<Config> {
                 .required(true),
         )
         .arg(
-            Arg::new("file")
+            Arg::new("files")
                 .value_name("FILE")
                 .help("Input file(s)")
                 .default_value("-")
@@ -55,7 +62,23 @@ pub fn get_args() -> MyResult<Config> {
         )
         .get_matches();
 
-    Ok(Config {})
+    let pattern = matches.get_one::<String>("pattern").unwrap();
+    let pattern = RegexBuilder::new(pattern)
+        .case_insensitive(matches.get_flag("insensitive"))
+        .build()
+        .map_err(|_| format!("Invalid pattern \"{}\"", pattern))?;
+
+    Ok(Config {
+        pattern,
+        files: matches
+            .get_many::<String>("files")
+            .unwrap()
+            .cloned()
+            .collect(),
+        recursive: matches.get_flag("recursive"),
+        count: matches.get_flag("count"),
+        invert_match: matches.get_flag("invert"),
+    })
 }
 
 pub fn run(config: Config) -> MyResult<()> {
