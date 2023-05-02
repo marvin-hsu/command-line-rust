@@ -1,10 +1,10 @@
+use crate::Column::*;
+use clap::{Arg, ArgAction, Command};
 use std::{
     error::Error,
     fs::File,
     io::{self, BufRead, BufReader},
 };
-
-use clap::{Arg, ArgAction, Command};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
@@ -17,6 +17,13 @@ pub struct Config {
     show_col3: bool,
     insensitive: bool,
     delimiter: String,
+}
+
+#[derive(Debug)]
+pub enum Column<'a> {
+    Col1(&'a str),
+    Col2(&'a str),
+    Col3(&'a str),
 }
 
 pub fn get_args() -> MyResult<Config> {
@@ -42,19 +49,19 @@ pub fn get_args() -> MyResult<Config> {
             Arg::new("suppress_col1")
                 .short('1')
                 .help("Suppress printing of column 1")
-                .action(ArgAction::SetTrue),
+                .action(ArgAction::SetFalse),
         )
         .arg(
             Arg::new("suppress_col2")
                 .short('2')
                 .help("Suppress printing of column 2")
-                .action(ArgAction::SetTrue),
+                .action(ArgAction::SetFalse),
         )
         .arg(
             Arg::new("suppress_col3")
                 .short('3')
                 .help("Suppress printing of column 3")
-                .action(ArgAction::SetTrue),
+                .action(ArgAction::SetFalse),
         )
         .arg(
             Arg::new("insentive")
@@ -83,6 +90,40 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
+    let print = |col: Column| {
+        let mut columns = vec![];
+        match col {
+            Column::Col1(val) => {
+                if config.show_col1 {
+                    columns.push(val);
+                }
+            }
+            Column::Col2(val) => {
+                if config.show_col2 {
+                    if config.show_col1 {
+                        columns.push("");
+                    }
+                    columns.push(val);
+                }
+            }
+            Column::Col3(val) => {
+                if config.show_col3 {
+                    if config.show_col1 {
+                        columns.push("");
+                    }
+                    if config.show_col2 {
+                        columns.push("");
+                    }
+                    columns.push(val);
+                }
+            }
+        }
+
+        if !columns.is_empty() {
+            println!("{}", columns.join(&config.delimiter));
+        }
+    };
+
     let file1 = &config.file1;
     let file2 = &config.file2;
 
@@ -90,10 +131,50 @@ pub fn run(config: Config) -> MyResult<()> {
         return Err(From::from("Both input files cannot be STDIN (\"-\")"));
     }
 
-    let _file1 = open(file1)?;
-    let _file2 = open(file2)?;
+    let case = |line: String| {
+        if config.insensitive {
+            line.to_lowercase()
+        } else {
+            line
+        }
+    };
 
-    println!("Opened {} and {}", file1, file2);
+    let mut lines1 = open(file1)?.lines().filter_map(Result::ok).map(case);
+    let mut lines2 = open(file2)?.lines().filter_map(Result::ok).map(case);
+
+    let mut line1 = lines1.next();
+    let mut line2 = lines2.next();
+
+    while line1.is_some() || line2.is_some() {
+        match (&line1, &line2) {
+            (Some(val1), Some(val2)) => {
+                match val1.cmp(val2) {
+                    std::cmp::Ordering::Less => {
+                        print(Col1(val1));
+                        line1 = lines1.next();
+                    }
+                    std::cmp::Ordering::Equal => {
+                        print(Col3(val1));
+                        line1 = lines1.next();
+                        line2 = lines2.next();
+                    }
+                    std::cmp::Ordering::Greater => {
+                        print(Col2(val2));
+                        line2 = lines2.next();
+                    }
+                };
+            }
+            (Some(val1), None) => {
+                print(Col1(val1));
+                line1 = lines1.next();
+            }
+            (None, Some(val2)) => {
+                print(Col2(val2));
+                line2 = lines2.next()
+            }
+            _ => (),
+        }
+    }
 
     Ok(())
 }
