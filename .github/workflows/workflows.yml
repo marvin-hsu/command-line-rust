@@ -13,7 +13,6 @@ jobs:
           with:
             toolchain: stable
         - run: sh ./run_test.sh
-        - uses: actions/upload-artifact@v3
+        - uses: mikepenz/action-junit-report@v2
           with:
-            name: test_result
-            path: combined_results.xml
+            report_paths: combined_results.xml
