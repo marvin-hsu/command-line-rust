@@ -10,6 +10,5 @@ clap = "4.2.5"
 
 [dev-dependencies]
 assert_cmd = "2.0.11"
-cargo-tarpaulin = "0.25.2"
 predicates = "3.0.3"
 rand = "0.8.5"
