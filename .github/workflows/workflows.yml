@@ -13,3 +13,7 @@ jobs:
           with:
             toolchain: stable
         - run: sh ./run_test.sh
+        - uses: actions/upload-artifact@v2
+          with:
+            name: Test Results
+            path: ${{ steps.test.outputs.combined_results_path }}
