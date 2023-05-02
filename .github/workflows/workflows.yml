@@ -13,6 +13,3 @@ jobs:
           with:
             toolchain: stable
         - run: sh ./run_test.sh
-        - uses: mikepenz/action-junit-report@v2
-          with:
-            report_paths: combined_results.xml
