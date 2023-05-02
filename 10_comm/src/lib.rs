@@ -5,7 +5,15 @@ use clap::{Arg, ArgAction, Command};
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
-pub struct Config {}
+pub struct Config {
+    file1: String,
+    file2: String,
+    show_col1: bool,
+    show_col2: bool,
+    show_col3: bool,
+    insensitive: bool,
+    delimiter: String,
+}
 
 pub fn get_args() -> MyResult<Config> {
     let matches = Command::new("commr")
@@ -47,7 +55,8 @@ pub fn get_args() -> MyResult<Config> {
         .arg(
             Arg::new("insentive")
                 .short('i')
-                .help("Case-insensitive comparsion of lines"),
+                .help("Case-insensitive comparsion of lines")
+                .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("delimiter")
@@ -58,10 +67,18 @@ pub fn get_args() -> MyResult<Config> {
                 .default_value("\t"),
         )
         .get_matches();
-    Ok(Config {})
+    Ok(Config {
+        file1: matches.get_one::<String>("file1").unwrap().clone(),
+        file2: matches.get_one::<String>("file2").unwrap().clone(),
+        show_col1: matches.get_flag("suppress_col1"),
+        show_col2: matches.get_flag("suppress_col2"),
+        show_col3: matches.get_flag("suppress_col3"),
+        insensitive: matches.get_flag("insentive"),
+        delimiter: matches.get_one::<String>("delimiter").unwrap().clone(),
+    })
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    todo!();
+    println!("{:?}",config);
     Ok(())
 }
