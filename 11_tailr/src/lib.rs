@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read, Seek, SeekFrom},
 };
 
 use clap::{Arg, ArgAction, Command};
@@ -103,9 +103,25 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    for filename in config.files {
-        match File::open(&filename) {
-            Ok(file) => {}
+    let num_files = config.files.len();
+    for (file_num, filename) in config.files.iter().enumerate() {
+        match File::open(filename) {
+            Ok(file) => {
+                if !config.quiet && num_files > 1 {
+                    println!(
+                        "{}==> {} <==",
+                        if file_num > 0 { "\n" } else { "" },
+                        filename
+                    )
+                }
+                let (total_lines, total_bytes) = count_lines_bytes(filename)?;
+                let f = BufReader::new(file);
+                if let Some(num_bytes) = &config.bytes {
+                    print_bytes(f, num_bytes, total_bytes)?;
+                } else {
+                    print_lines(f, &config.lines, total_lines)?;
+                }
+            }
             Err(e) => eprintln!("{}: {}", filename, e),
         }
     }
@@ -170,6 +186,42 @@ fn get_start_index(take_val: &TakeValue, total: i64) -> Option<u64> {
             }
         }
     }
+}
+
+fn print_lines(mut file: impl BufRead, num_lines: &TakeValue, total_lines: i64) -> MyResult<()> {
+    if let Some(start) = get_start_index(num_lines, total_lines) {
+        let mut line_num = 0;
+        let mut buf = Vec::new();
+        loop {
+            let bytes_read = file.read_until(b'\n', &mut buf)?;
+            if bytes_read == 0 {
+                break;
+            }
+            if line_num >= start {
+                print!("{}", String::from_utf8_lossy(&buf));
+            }
+            line_num += 1;
+            buf.clear();
+        }
+    }
+
+    Ok(())
+}
+
+fn print_bytes<T: Read + Seek>(
+    mut file: T,
+    num_bytes: &TakeValue,
+    total_bytes: i64,
+) -> MyResult<()> {
+    if let Some(start) = get_start_index(num_bytes, total_bytes) {
+        file.seek(SeekFrom::Start(start))?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        if !buffer.is_empty() {
+            print!("{}", String::from_utf8_lossy(&buffer));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
