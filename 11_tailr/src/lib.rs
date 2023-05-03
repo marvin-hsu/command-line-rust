@@ -31,6 +31,7 @@ pub fn get_args() -> MyResult<Config> {
                 .value_name("FILE")
                 .help("Input file(s)")
                 .action(ArgAction::Append)
+                .required(true)
                 .num_args(1..),
         )
         .arg(
@@ -73,12 +74,17 @@ pub fn get_args() -> MyResult<Config> {
     //     Some(val) => Some(parse_arg(val)),
     //     None => None,
     // };
-    let lines = parse_num(matches.get_one::<String>("lines").unwrap()).unwrap();
+    let lines = matches
+        .get_one::<String>("lines")
+        .map(|n| parse_num(n))
+        .transpose()
+        .map_err(|e| format!("illegal line count -- {}", e))?;
 
-    let bytes = match matches.get_one::<String>("bytes") {
-        Some(val) => Some(parse_num(val).unwrap()),
-        None => None,
-    };
+    let bytes = matches
+        .get_one::<String>("bytes")
+        .map(|n| parse_num(n))
+        .transpose()
+        .map_err(|e| format!("illegal byte count -- {}", e))?;
 
     Ok(Config {
         files: matches
@@ -86,7 +92,7 @@ pub fn get_args() -> MyResult<Config> {
             .unwrap()
             .cloned()
             .collect(),
-        lines,
+        lines: lines.unwrap(),
         bytes,
         quiet: matches.get_flag("quiet"),
     })
