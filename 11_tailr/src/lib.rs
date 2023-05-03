@@ -25,7 +25,7 @@ pub fn get_args() -> MyResult<Config> {
         .about("Rust tail")
         .get_matches();
 
-    Ok(Config {})
+    Ok(Config { files: todo!(), lines: todo!(), bytes: todo!(), quiet: todo!() })
 }
 
 pub fn run(config: Config) -> MyResult<()> {
