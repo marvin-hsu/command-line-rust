@@ -1,5 +1,8 @@
 use std::error::Error;
 
+use clap::Command;
+use regex::Regex;
+
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
@@ -10,6 +13,12 @@ pub struct Config {
 }
 
 pub fn get_args() -> MyResult<Config> {
+    let matches = Command::new("fortuner")
+        .version("0.1.0")
+        .author("marvinhsu")
+        .about("Rust fortune")
+        .get_matches();
+
     Ok(Config {
         source: todo!(),
         pattern: todo!(),
