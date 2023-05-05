@@ -7,7 +7,7 @@ use std::{
 };
 
 use clap::{Arg, ArgAction, Command};
-use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng, Rng, RngCore};
+use rand::{rngs::StdRng, seq::SliceRandom, RngCore, SeedableRng};
 use regex::{Regex, RegexBuilder};
 use walkdir::WalkDir;
 
@@ -92,7 +92,25 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    println!("{:?}", config);
+    let files = find_files(&config.source)?;
+    let fortunes = read_fortunes(&files)?;
+    if let Some(pattern) = config.pattern {
+        let mut prev_source = None;
+        for fortune in fortunes.iter().filter(|f| pattern.is_match(&f.text)) {
+            if prev_source.as_ref().map_or(true, |s| s != &fortune.source) {
+                eprintln!("({})\n%", fortune.source.clone());
+                prev_source = Some(fortune.source.clone());
+            }
+            println!("{}\n%", fortune.text);
+        }
+    } else {
+        println!(
+            "{}",
+            pick_fortune(&fortunes, config.seed)
+                .or_else(|| Some("No fortunes found".to_string()))
+                .unwrap()
+        )
+    }
     Ok(())
 }
 
