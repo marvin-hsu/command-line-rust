@@ -1,10 +1,10 @@
 # command-line-rust  
 
-This repo is a collection of exercises based on the examples in the book "Command Line Rust".  
+This repo is a collection of exercises based on the examples in the book "[Command Line Rust](https://www.oreilly.com/library/view/command-line-rust/9781098109424/)".  
 
 ## Exercise Purpose
 
-the book initially showcases Clap 2.0, all the exercises have been upgraded to utilize the latest version 4.0.
+By working through the exercises in this book, we can gain a deeper understanding of Rust and become familiar with the usage of Clap. Meanwhile, the book initially showcases Clap 2.0, all the exercises have been upgraded to utilize the latest version, 4.0.
 
 ## Exercise Chapters  
 
