@@ -23,4 +23,4 @@ The chapters in this exercise include:
 - [11_tailr](https://github.com/marvin-hsu/command-line-rust/tree/main/11_tailr)
 - [12_fortuner](https://github.com/marvin-hsu/command-line-rust/tree/main/12_fortuner)
 - [13_calr](https://github.com/marvin-hsu/command-line-rust/tree/main/13_calr)
-- [14_lsr](https://github.com/marvin-hsu/command-line-rust/tree/main/14_lsr)  
+- [14_lsr](https://github.com/marvin-hsu/command-line-rust/tree/main/14_lsr) 
